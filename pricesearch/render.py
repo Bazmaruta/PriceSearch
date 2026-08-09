@@ -554,6 +554,11 @@ _SHELL_JS = """
       name: p.name || '',
       productId: pid,
       storeId: p.store || '',
+      priceCents: (p.price != null) ? Math.round(Number(p.price) * 100) : null,
+      price: (p.price != null) ? Number(p.price) : null,
+      unitLabel: p.pack_size || p.unit_label || '',
+      imageUrl: p.image_url || '',
+      productUrl: p.url || '',
       requestId: requestId
     }));
   }
