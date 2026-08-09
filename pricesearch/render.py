@@ -444,6 +444,12 @@ _SHELL_CSS = """
          text-decoration:none; padding:9px 14px; border-radius:10px; font-size:15px; }
   .price:hover { background:var(--accent); }
   .price-unlinked { background:#e2e8f0; color:var(--ink); cursor:default; }
+  .btn-add { display:block; width:100%; margin-top:8px; border:1px solid var(--accent);
+         background:#fff; color:var(--accent); font-weight:700; font-size:14px;
+         padding:9px 14px; border-radius:10px; cursor:pointer; }
+  .btn-add:hover { background:var(--accent); color:#fff; }
+  .btn-add:disabled { opacity:.7; cursor:default; }
+  .btn-add.added { background:var(--good); border-color:var(--good); color:#fff; }
   .empty { color:var(--muted); padding:24px 0; }
   .foot { color:var(--muted); font-size:12px; margin-top:40px; text-align:center; }
 
@@ -482,6 +488,7 @@ _SHELL_CSS = """
     .name { font-size:15px; margin-bottom:4px; }
     .meta { font-size:12px; margin-bottom:8px; min-height:0; }
     .price { display:block; text-align:center; padding:10px 14px; font-size:15px; }
+    .btn-add { font-size:13px; padding:8px 12px; }
     .cat-title { font-size:18px; margin:0 0 10px; }
     .foot { margin-top:28px; }
   }
@@ -496,6 +503,8 @@ _SHELL_JS = """
     active: null, totalTasks: 0, completedTasks: 0
   };
   var t0 = 0, timer = null, es = null;
+  var inApp = !!(window.ReactNativeWebView && window.ReactNativeWebView.postMessage);
+  var pendingAdds = {};
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
@@ -519,16 +528,61 @@ _SHELL_JS = """
       ? '<a class="price" href="' + esc(p.url) + '" target="_blank" rel="noopener" title="Open product page">Buy ' + money(p.price) + ' &rarr;</a>'
       : '<span class="price price-unlinked">' + money(p.price) + '</span>';
     var pack = p.pack_size ? '<span class="pack">' + esc(p.pack_size) + '</span>' : '';
-    return '<div class="card" data-store="' + esc((p.store || '').toLowerCase()) + '">' +
+    var addBtn = inApp
+      ? '<button type="button" class="btn-add">Add to shopping list</button>'
+      : '';
+    return '<div class="card" data-store="' + esc((p.store || '').toLowerCase()) + '" data-pid="' + esc(p.pid || '') + '">' +
       '<div class="thumb">' + img + '</div>' +
       '<div class="card-body">' +
         '<span class="store-badge" style="background:' + s[1] + ';color:' + s[0] + '">' + esc(p.store || '') + '</span>' +
         chip +
         '<h3 class="name">' + esc(p.name || '') + '</h3>' +
         '<div class="meta">' + esc(p.brand || '') + pack + '</div>' +
-        '<div class="card-foot">' + price + '</div>' +
+        '<div class="card-foot">' + price + addBtn + '</div>' +
       '</div></div>';
   }
+
+  function addToShoppingList(pid, btn) {
+    var p = state.products[pid];
+    if (!p || !window.ReactNativeWebView) return;
+    var requestId = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    pendingAdds[requestId] = { pid: pid, el: btn };
+    btn.disabled = true;
+    btn.textContent = 'Adding\u2026';
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'ADD_ITEM',
+      name: p.name || '',
+      productId: pid,
+      storeId: p.store || '',
+      requestId: requestId
+    }));
+  }
+
+  window.__cartwiseOnAddResult = function (res) {
+    if (!res || !res.requestId) return;
+    var rec = pendingAdds[res.requestId];
+    if (!rec) return;
+    delete pendingAdds[res.requestId];
+    var btn = (rec.el && rec.el.isConnected) ? rec.el : null;
+    if (!btn) {
+      var target = null;
+      document.querySelectorAll('.card[data-pid]').forEach(function (c) {
+        if (c.getAttribute('data-pid') === rec.pid) target = c;
+      });
+      if (target) btn = target.querySelector('.btn-add');
+    }
+    if (!btn) return;
+    btn.disabled = true;
+    if (res.ok) {
+      btn.classList.add('added');
+      btn.textContent = 'Added to ' + (res.listName || 'list') + ' \u2713';
+    } else if (res.error === 'already exists') {
+      btn.textContent = 'Already in list';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Add to shopping list';
+    }
+  };
 
   function computeCheapest() {
     Object.keys(state.products).forEach(function (pid) {
@@ -795,6 +849,18 @@ _SHELL_JS = """
       alert('Add at least one store.');
     }
   });
+  (function () {
+    var box = document.getElementById('results');
+    if (!box) return;
+    box.addEventListener('click', function (ev) {
+      var t = ev.target;
+      while (t && t !== box && !(t.classList && t.classList.contains('btn-add'))) t = t.parentNode;
+      if (!t || t === box || !t.classList || !t.classList.contains('btn-add')) return;
+      var cardEl = t.parentNode;
+      while (cardEl && cardEl !== box && !(cardEl.classList && cardEl.classList.contains('card'))) cardEl = cardEl.parentNode;
+      if (cardEl) addToShoppingList(cardEl.getAttribute('data-pid') || '', t);
+    });
+  })();
   if (q) {
     state.query = q;
     state.model = params.get('model') || '';
