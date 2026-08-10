@@ -827,7 +827,7 @@ _SHELL_JS = """
     refreshClear();
   });
   refreshClear();
-  state.mode = (params.get('mode') || 'premium').toLowerCase();
+  state.mode = (params.get('mode') || 'basic').toLowerCase();
   document.getElementById('mode').value = state.mode;
   var st = params.getAll('stores');
   pickerStores = (st.length ? st : ['Woolworths', 'Aldi', 'Coles']).slice(0, 3);
@@ -883,7 +883,7 @@ def render_shell(query: str = "", model: str | None = None, category: str | None
     """Return the streaming web page shell (instant render; results via SSE)."""
     current = model or pricing.DEFAULT_MODEL
     current_category = category or "Fresh"
-    current_mode = (mode or "premium").strip().casefold()
+    current_mode = (mode or "basic").strip().casefold()
     if current_mode not in ("premium", "basic", "advanced"):
         current_mode = "premium"
     mode_options = "".join(
