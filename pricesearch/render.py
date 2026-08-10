@@ -409,6 +409,8 @@ _SHELL_CSS = """
   .overall-meta { color:var(--muted); font-size:14px; }
   .overall-link { margin-left:auto; color:var(--good); font-weight:600;
          text-decoration:none; white-space:nowrap; }
+  .overall-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+  .overall-actions .btn-add { width:auto; margin-top:0; padding:6px 12px; font-size:13px; }
   .pills { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
   .pill { border:1px solid var(--line); background:var(--card); padding:8px 16px;
          border-radius:999px; font-size:14px; cursor:pointer; color:var(--muted); }
@@ -474,6 +476,7 @@ _SHELL_CSS = """
     .summary { font-size:14px; padding:12px 14px; }
     .overall { flex-wrap:wrap; gap:10px; padding:12px 14px; }
     .overall-link { margin-left:0; }
+    .overall-actions { margin-left:0; }
     .pills { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
          margin:0 -12px 14px; padding:0 12px; scrollbar-width:none; }
     .pills::-webkit-scrollbar { display:none; }
@@ -529,7 +532,7 @@ _SHELL_JS = """
       : '<span class="price price-unlinked">' + money(p.price) + '</span>';
     var pack = p.pack_size ? '<span class="pack">' + esc(p.pack_size) + '</span>' : '';
     var addBtn = inApp
-      ? '<button type="button" class="btn-add">Add to shopping list</button>'
+      ? '<button type="button" class="btn-add" data-pid="' + esc(p.pid || '') + '">Add to shopping list</button>'
       : '';
     return '<div class="card" data-store="' + esc((p.store || '').toLowerCase()) + '" data-pid="' + esc(p.pid || '') + '">' +
       '<div class="thumb">' + img + '</div>' +
@@ -563,6 +566,68 @@ _SHELL_JS = """
     }));
   }
 
+  var HOME_BY_STORE = {
+    woolworths: 'https://www.woolworths.com.au/',
+    coles: 'https://www.coles.com.au/',
+    aldi: 'https://www.aldi.com.au/'
+  };
+  var NOT_FOUND_RE = /page not found|product not found|not found|no longer available|has been removed|doesn'?t exist|is no longer sold|404/i;
+  var urlCheckCache = {};
+
+  function storeHome(store) {
+    return HOME_BY_STORE[String(store || '').toLowerCase()] || '';
+  }
+
+  function openProductUrl(url, store) {
+    if (!url) return;
+    var home = storeHome(store);
+    if (urlCheckCache[url] === 'bad') { window.open(home || url, '_blank'); return; }
+    if (urlCheckCache[url] === 'good') { window.open(url, '_blank'); return; }
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 8000);
+    fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal })
+      .then(function (res) {
+        if (res.status === 404 || res.status === 410) {
+          urlCheckCache[url] = 'bad';
+          window.open(home || url, '_blank');
+          return;
+        }
+        return res.text().then(function (text) {
+          if (NOT_FOUND_RE.test(text || '')) {
+            urlCheckCache[url] = 'bad';
+            window.open(home || url, '_blank');
+          } else {
+            urlCheckCache[url] = 'good';
+            window.open(url, '_blank');
+          }
+        });
+      })
+      .catch(function () {
+        window.open(url, '_blank');
+      });
+  }
+
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    while (t && t.nodeType !== 1) t = t.parentNode;
+    if (!t || !t.closest) return;
+    var link = t.closest('.price[href], .overall-link[href]');
+    if (!link) return;
+    var url = link.getAttribute('href');
+    var store = '';
+    if (link.classList.contains('overall-link')) {
+      store = state.overall ? state.overall.store : '';
+    } else {
+      var cardEl = link.closest('.card');
+      if (cardEl) {
+        var p = state.products[cardEl.getAttribute('data-pid') || ''];
+        store = p ? p.store : '';
+      }
+    }
+    ev.preventDefault();
+    openProductUrl(url, store);
+  });
+
   window.__cartwiseOnAddResult = function (res) {
     if (!res || !res.requestId) return;
     var rec = pendingAdds[res.requestId];
@@ -571,10 +636,10 @@ _SHELL_JS = """
     var btn = (rec.el && rec.el.isConnected) ? rec.el : null;
     if (!btn) {
       var target = null;
-      document.querySelectorAll('.card[data-pid]').forEach(function (c) {
+      document.querySelectorAll('.btn-add[data-pid]').forEach(function (c) {
         if (c.getAttribute('data-pid') === rec.pid) target = c;
       });
-      if (target) btn = target.querySelector('.btn-add');
+      if (target) btn = target;
     }
     if (!btn) return;
     btn.disabled = true;
@@ -636,8 +701,10 @@ _SHELL_JS = """
       ? '<div class="overall"><div class="overall-badge">Overall cheapest</div>' +
         '<div class="overall-body"><span class="overall-name">' + esc(ov.name) + '</span>' +
         '<span class="overall-meta">' + esc(ov.store) + ' &middot; ' + money(ov.price) + '</span></div>' +
+        '<div class="overall-actions">' +
+        (inApp ? '<button type="button" class="btn-add overall-add" data-pid="' + esc(ov.pid || '') + '">Add to shopping list</button>' : '') +
         (ov.url ? '<a class="overall-link" href="' + esc(ov.url) + '" target="_blank" rel="noopener">Open &rarr;</a>' : '') +
-        '</div>' : '';
+        '</div></div>' : '';
 
     document.getElementById('pills').innerHTML = state.stores.map(function (s) {
       return '<button class="pill' + (state.active && state.active.has(s.toLowerCase()) ? ' active' : '') +
