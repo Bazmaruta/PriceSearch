@@ -1,0 +1,94 @@
+{
+  "cases": [
+    {
+      "id": "nutella_500g_au",
+      "canonical": {"brand": "Nutella", "product_name": "Hazelnut Spread",
+                    "size_value": 500, "size_unit": "g",
+                    "canonical_name": "Nutella Hazelnut Spread 500g"},
+      "country": "AU",
+      "expected_status": "found_and_verified",
+      "expected_retailers": ["Woolworths", "Coles", "ALDI"],
+      "expected_cheapest_retailer": "ALDI",
+      "expected_price": 5.95,
+      "currency": "AUD"
+    },
+    {
+      "id": "coke_zero_6pk_au",
+      "canonical": {"brand": "Coca-Cola", "product_name": "Soft Drink",
+                    "variant": "Zero Sugar", "size_value": 375, "size_unit": "mL",
+                    "size_basis": "per_unit", "pack_count": 6,
+                    "canonical_name": "Coca-Cola Zero Sugar 6 x 375mL"},
+      "country": "AU",
+      "expected_status": "found_and_verified",
+      "expected_retailers": ["Woolworths", "Coles"],
+      "expected_cheapest_retailer": "Woolworths",
+      "expected_price": 8.50
+    },
+    {
+      "id": "no_price_found",
+      "canonical": {"product_name": "Artisanal Cloudberry Jam",
+                    "canonical_name": "Artisanal Cloudberry Jam 250g"},
+      "country": "AU",
+      "expected_status": "found_without_price"
+    },
+    {
+      "id": "uk_tea_200g",
+      "canonical": {"brand": "Yorkshire Tea", "product_name": "Tea Bags",
+                    "size_value": 200, "size_unit": "g",
+                    "canonical_name": "Yorkshire Tea Tea Bags 200g"},
+      "country": "GB",
+      "expected_status": "found_and_verified",
+      "expected_retailers": ["Tesco"],
+      "expected_price": 3.20,
+      "expected_currency": "GBP"
+    },
+    {
+      "id": "defect_save_before_price",
+      "canonical": {"brand": "Nutella", "product_name": "Hazelnut Spread",
+                    "size_value": 500, "size_unit": "g",
+                    "canonical_name": "Nutella Hazelnut Spread 500g"},
+      "country": "AU",
+      "expected_status": "found_and_verified",
+      "expected_price": 6.30,
+      "evidence": "Save 0.60\nRegular price 6.30 AUD"
+    },
+    {
+      "id": "defect_unit_before_price",
+      "canonical": {"brand": "Nutella", "product_name": "Hazelnut Spread",
+                    "size_value": 500, "size_unit": "g",
+                    "canonical_name": "Nutella Hazelnut Spread 500g"},
+      "country": "AU",
+      "expected_status": "found_and_verified",
+      "expected_price": 6.30,
+      "evidence": "per 100g 0.30\nRegular price 6.30 AUD"
+    },
+    {
+      "id": "defect_bare_decimal",
+      "canonical": {"brand": "Nutella", "product_name": "Hazelnut Spread",
+                    "size_value": 500, "size_unit": "g",
+                    "canonical_name": "Nutella Hazelnut Spread 500g"},
+      "country": "AU",
+      "expected_status": "found_without_price",
+      "evidence": "Nutella 500g\n0.30"
+    },
+    {
+      "id": "defect_suspicious_low",
+      "canonical": {"brand": "Nutella", "product_name": "Hazelnut Spread",
+                    "size_value": 500, "size_unit": "g",
+                    "canonical_name": "Nutella Hazelnut Spread 500g"},
+      "country": "AU",
+      "expected_status": "found_but_ambiguous",
+      "evidence": "Nutella 500g $0.30"
+    },
+    {
+      "id": "defect_was_now",
+      "canonical": {"brand": "Nutella", "product_name": "Hazelnut Spread",
+                    "size_value": 500, "size_unit": "g",
+                    "canonical_name": "Nutella Hazelnut Spread 500g"},
+      "country": "AU",
+      "expected_status": "found_and_verified",
+      "expected_price": 6.30,
+      "evidence": "Was $7.00\nNow $6.30"
+    }
+  ]
+}

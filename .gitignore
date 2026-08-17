@@ -1,5 +1,26 @@
+# Environment / secrets
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
 *.pyc
+
+# Generated caches and outputs
 data/cache/
+**/data/cache/
 output/
+**/output/
+
+# Logs and runtime artifacts
+*.log
+*.log.err
+*.err
+*.pid
+
+# Generated audit reports
+**/audit_reports/
+
+# Scratch files
+sample.json
